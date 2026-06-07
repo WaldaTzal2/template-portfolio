@@ -1,6 +1,7 @@
 streamlit
+chromadb
 google-generativeai
 openai
-numpy
 python-dotenv
+numpy
 # adicione aqui outras bibliotecas que seu código usa
