@@ -1,7 +1,9 @@
 streamlit
 chromadb
 google-generativeai
-openai
 python-dotenv
 numpy
+langchain
+langchain-community
+pypdf
 # adicione aqui outras bibliotecas que seu código usa
