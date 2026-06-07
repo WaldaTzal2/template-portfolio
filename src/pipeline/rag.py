@@ -236,15 +236,20 @@ class RAGPipeline:
         # 6. GERAÇÃO DA RESPOSTA (Generation)
         response = model.generate_content(prompt_usuario)
 
-        # 7. FILTRAGEM E MAPEAMENTO DE FONTES UTILIZADAS
+        # 7. FILTRAGEM E MAPEAMENTO DE FONTES UTILIZADAS (BLINDADO)
         msg_guardrail = "Como seu Assistente de Compliance LGPD, meu escopo de atuação é restrito"
         resposta_final_texto = response.text if response else "Não foi possível gerar uma resposta."
+
+        # Garante que hits é tratado como lista mesmo se for None
+        lista_hits = hits if hits is not None else []
 
         if msg_guardrail in resposta_final_texto:
             fontes_unicas = []
         else:
+            # Cria o conjunto de fontes apenas se houver hits
             fontes_unicas = list(
-                {f"{h['source']} (pág. {h['page']})" for h in hits})
+                {f"{h['source']} (pág. {h['page']})" for h in lista_hits})
+
             if fontes_unicas:
                 texto_fontes = "\n\n**Fontes consultadas nos guias oficiais:**\n" + \
                     "\n".join([f"- {f}" for f in fontes_unicas])
@@ -264,14 +269,4 @@ class RAGPipeline:
         self._save_cache(question, payload)
 
         return payload
-
-
-def build_rag_pipeline(corpus_dir: str = "data/corpus", chroma_client: Any = None) -> RAGPipeline:
-    """Função auxiliar de fábrica que integra perfeitamente os testes locais à pipeline."""
-    if chroma_client is None:
-        import chromadb
-        chroma_client = chromadb.EphemeralClient()
-
-    pipeline = RAGPipeline(chroma_client)
-    pipeline.ingest_directory(corpus_dir)
-    return pipeline
+streamlit run app.py

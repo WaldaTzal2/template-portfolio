@@ -45,7 +45,7 @@ class SemanticCache:
         # Inicializa cliente para embeddings (mesmo provider do RAG)
         if "GEMINI_API_KEY" in os.environ:
             self._client = OpenAI(
-                api_key=os.environ["AQ.Ab8RN6IojPcLq5F6_BgzMaOR_NbZJVLFozc6WkvNA6CMGNHyng"],
+                api_key=api_key=os.environ.get("GEMINI_API_KEY"),
                 base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
             )
             self._embed_model = os.environ.get(
