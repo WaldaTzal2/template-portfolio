@@ -1,11 +1,18 @@
 """Interface Visual em Streamlit para o Assistente de Compliance LGPD."""
 
+from src.pipeline.rag import RAGPipeline
 from dotenv import load_dotenv
 import chromadb
-from src.pipeline.rag import RAGPipeline
 import streamlit as st
 import sys
 import os
+
+# Adiciona a raiz do projeto ao caminho de busca do Python
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+
+# Agora importa a sua classe
+
 # Adiciona a pasta atual ao path do Python para garantir que 'src' seja encontrada
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 

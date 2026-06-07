@@ -269,4 +269,3 @@ class RAGPipeline:
         self._save_cache(question, payload)
 
         return payload
-streamlit run app.py
