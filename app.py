@@ -1,11 +1,23 @@
 """Interface Visual em Streamlit para o Assistente de Compliance LGPD."""
 
-from src.pipeline.rag import RAGPipeline
-from dotenv import load_dotenv
-import chromadb
-import streamlit as st
+
 import sys
+import chromadb
+from dotenv import load_dotenv
+from src.pipeline.rag import RAGPipeline
+import streamlit as st
 import os
+
+# --- INÍCIO DO CÓDIGO DE DIAGNÓSTICO ---
+st.write("### Diagnóstico de Autenticação")
+if "GEMINI_API_KEY" in st.secrets:
+    chave = st.secrets["GEMINI_API_KEY"]
+    st.success(f"Chave detectada! Primeiros 5 caracteres: {chave[:5]}...")
+else:
+    st.error(
+        "ERRO: A chave 'GEMINI_API_KEY' não foi encontrada nos Secrets do Streamlit.")
+# --- FIM DO CÓDIGO DE DIAGNÓSTICO ---
+
 
 # Adiciona a raiz do projeto ao caminho de busca do Python
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
