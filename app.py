@@ -1,5 +1,14 @@
 """Interface Visual em Streamlit para o Assistente de Compliance LGPD."""
 
+import sys
+import os
+# Adiciona a pasta atual ao path do Python para garantir que 'src' seja encontrada
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
+
+import streamlit as st
+# Agora o import deve funcionar
+from src.pipeline.rag import RAGPipeline
+
 import streamlit as st
 import chromadb
 import os
