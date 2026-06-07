@@ -1,0 +1,5 @@
+streamlit
+google-generativeai
+openai
+numpy
+# adicione aqui outras bibliotecas que seu código usa
