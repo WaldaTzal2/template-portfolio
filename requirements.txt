@@ -2,4 +2,5 @@ streamlit
 google-generativeai
 openai
 numpy
+python-dotenv
 # adicione aqui outras bibliotecas que seu código usa
