@@ -10,7 +10,7 @@ Clique no link abaixo para assistir à apresentação completa do projeto e audi
 [![Assista no YouTube]](COLOQUE_O_LINK_DO_YOUTUBE_AQUI)
 
 
-**Live demo:** [Clique aqui para acessar o Assistente de Compliance LGPD](http://localhost:8501)
+**Live demo:** [Clique aqui para acessar o Assistente de Compliance LGPD](COLOQUE_A_URL_DO_STREAMLIT_AQUI)
 
 ## Problem statement
 
