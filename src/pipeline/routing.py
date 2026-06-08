@@ -14,9 +14,9 @@ class RouteDecision:
 
 def classify_complexity(query: str) -> RouteDecision:
     """Classifica complexidade da query para escolher modelo (cheap vs premium) do Groq."""
-    # Força os modelos diretamente como strings para ignorar lixo de variáveis antigas
-    cheap_model = "llama3-8b-8192"
-    premium_model = "llama3-70b-8192"
+    # Modelos atualizados e suportados pelo Groq
+    cheap_model = "llama-3.1-8b-instant"
+    premium_model = "llama-3.3-70b-versatile"
 
     query_lower = query.lower()
     gatilhos_complexos = ["explique", "compare",
