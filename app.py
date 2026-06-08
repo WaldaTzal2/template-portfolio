@@ -8,14 +8,15 @@ from src.pipeline.rag import RAGPipeline
 import streamlit as st
 import os
 
-# --- INÍCIO DO CÓDIGO DE DIAGNÓSTICO ---
+# --- INÍCIO DO CÓDIGO DE DIAGNÓSTICO ATUALIZADO ---
 st.write("### Diagnóstico de Autenticação")
-if "GEMINI_API_KEY" in st.secrets:
-    chave = st.secrets["GEMINI_API_KEY"]
-    st.success(f"Chave detectada! Primeiros 5 caracteres: {chave[:5]}...")
+if "GROQ_API_KEY" in st.secrets:
+    chave = st.secrets["GROQ_API_KEY"]
+    st.success(
+        f"Chave do Groq detectada! Primeiros 5 caracteres: {chave[:5]}...")
 else:
     st.error(
-        "ERRO: A chave 'GEMINI_API_KEY' não foi encontrada nos Secrets do Streamlit.")
+        "ERRO: A chave 'GROQ_API_KEY' não foi encontrada nos Secrets do Streamlit. Por favor, adicione-a no painel do Streamlit Cloud.")
 # --- FIM DO CÓDIGO DE DIAGNÓSTICO ---
 
 
@@ -139,7 +140,7 @@ with col_bastidores:
                 st.markdown(f"- 📄 `{fonte}`")
         else:
             st.caption(
-                "Nenhuma fonte documental consultada para esta interação (Interação curta ou fora de escopo).")
+                "Nenhuma fonte documental consultada para esta interação (Interação corta ou fora de escopo).")
 
     else:
         st.caption(

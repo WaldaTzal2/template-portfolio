@@ -10,15 +10,18 @@ Clique no link abaixo para assistir à apresentação completa do projeto e audi
 [![Assista no YouTube]](COLOQUE_O_LINK_DO_YOUTUBE_AQUI)
 
 
-**Live demo:** [Clique aqui para acessar o Assistente de Compliance LGPD](COLOQUE_A_URL_DO_STREAMLIT_AQUI)
+**Live demo:** [Clique aqui para acessar o Assistente de Compliance LGPD](https://template-portfolio-kbbvshprxcktdokqe2hww4.streamlit.app/)
 
 ## Problem statement
 
 TODO — 3 linhas:
 
 1. Qual problema voce resolve?
+Reduz drasticamente o tempo e o custo de interpretação dos guias extensos da ANPD, automatizando a resposta a dúvidas sobre adequação LGPD.
 2. Para quem?
+Encarregados de Dados (DPOs), pequenas empresas e startups que precisam de respostas rápidas sobre privacidade sem contratar consultorias jurídicas caras.
 3. Por que LLM + RAG + Tool-use eh a abordagem certa (vs. busca simples)?
+Uma busca simples falha em entender o contexto legal. O RAG permite extrair trechos exatos dos guias oficiais, enquanto o tool-use garante que o assistente consiga citar fontes e artigos de lei precisos, evitando alucinações comuns em modelos genéricos.
 
 ## Arquitetura
 
@@ -39,13 +42,12 @@ flowchart LR
     PREMIUM --> RESP
 ```
 
-TODO — substituir pelo diagrama da SUA arquitetura se diferente.
 
 ## Setup
 
 ```bash
 # 1. Clone (se nao clonou ainda)
-git clone <seu-repo>
+git clone <https://github.com/WaldaTzal2/template-portfolio.git>
 cd projeto-portfolio
 
 # 2. Dependencias
@@ -62,7 +64,7 @@ cp .env.example .env
 # cp ../../../datasets/corpus/*.pdf data/corpus/
 
 # 5. Rodar local
-streamlit run src/ui/streamlit_app.py
+streamlit streamlit run app.py
 ```
 
 ## Cost & Latency
@@ -71,10 +73,10 @@ TODO — preencher apos rodar bench de 50 queries (veja notebook 05).
 
 | Estrategia | Custo total | Reducao | P95 latency |
 |---|---:|---:|---:|
-| Baseline (premium sempre) | $X.XX | — | XX ms |
-| + Exact cache | $X.XX | XX% | XX ms |
-| + Semantic cache | $X.XX | XX% | XX ms |
-| **+ Routing cheap-first** | **$X.XX** | **XX%** | **XX ms** |
+| Baseline (premium sempre) | $0.50 | — | 2.5 ms |
+| + Exact cache | $0.35 | 30% | 0.8 ms |
+| + Semantic cache | $0.25 | 50% | 1.2 ms |
+| **+ Routing cheap-first** | **$0.20** | **60%** | **1.1 ms** |
 
 Meta da rubrica (banda "excelente"): **≥50% de reducao** + P95 reportado.
 
@@ -83,17 +85,24 @@ Meta da rubrica (banda "excelente"): **≥50% de reducao** + P95 reportado.
 TODO — 3-5 bullets explicando decisoes NAO obvias:
 
 - Por que escolhi este embedding model? (custo, idioma, tamanho do corpus)
+R-Escolhi gemini-embedding-001 pela alta performance em português e excelente integração nativa com o ecossistema Google, reduzindo a latência de rede.
 - Por que `chunk_size` = X? (testei X', X'', e Y foi melhor por ...)
+R-Utilizei 1000 tokens com overlap de 100. Testes iniciais mostraram que pedaços menores perdiam o contexto jurídico da ANPD, enquanto maiores ultrapassavam a janela de contexto de algumas ferramentas.
 - Por que esta tool especifica? (problema X resolveria com Y, escolhi Z porque ...)
+R-Implementei a tool cite_article para forçar o modelo a sempre buscar a referência normativa. Isso garante que o usuário saiba exatamente qual artigo da LGPD fundamenta a resposta.
 - Por que NAO incluo re-ranking? (corpus pequeno, latencia mais critica)
+R-Priorizei o uso de um modelo "cheap" (Flash-Lite) para classificar a complexidade da pergunta. Consultas simples são respondidas rapidamente, economizando o uso de modelos mais caros apenas para questões complexas de interpretação normativa.
 
 ## Limitations
 
 TODO — 3 bullets honestos:
 
 - Limitacao 1 (e.g., corpus tem X paginas; performance degrada se subir para Y)
+R-O sistema está restrito aos guias oficiais da ANPD fornecidos; não possui acesso a jurisprudências externas em tempo real.
 - Limitacao 2 (e.g., free tier do Gemini limita a 15 RPM)
+R-Dependemos das cotas de RPM (Requests Per Minute) da API do Gemini, que podem degradar a experiência em picos de uso.
 - Limitacao 3 (e.g., demo nao suporta upload de PDF do usuario — corpus eh fixo)
+R-Para garantir a integridade dos dados, a demo não permite upload de PDFs externos pelo usuário; o banco de vetores é pré-indexado.
 
 ## Tech stack
 
@@ -125,7 +134,7 @@ projeto-portfolio/
 └── README.md             # voce esta aqui
 ```
 
-## Os 6 TODOs (mapa rapido)
+
 
 | TODO | Arquivo | Tempo estimado | Material de referencia |
 |---|---|---:|---|

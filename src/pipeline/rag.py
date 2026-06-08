@@ -6,7 +6,8 @@ import os
 import json
 import hashlib
 from typing import Any
-import google.generativeai as genai
+from groq import Groq
+import streamlit as st
 from langchain_community.document_loaders import PyPDFDirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
@@ -36,7 +37,7 @@ PROMPT_SISTEMA_LGPD = (
     "\"Como seu Assistente de Compliance LGPD, meu escopo de atuação é restrito exclusivamente a dúvidas sobre proteção de dados, "
     "privacidade e conformidade legal. Por favor, reformule sua pergunta focando nesses temas.\"\n\n"
     "[AVISO DE ISENÇÃO DE RESPONSABILIDADE]\n"
-    "Ao final de cada resposta instrutiva, adicione uma linha horizontal separadora (---) e inclua textualmente o seguinte aviso legal:\n"
+    "Ao final de cada resposta instruutiva, adicione uma linha horizontal separadora (---) e inclua textualmente o seguinte aviso legal:\n"
     "*Aviso: Esta orientação possui caráter puramente educativo e informativo com base nos guias da ANPD e na legislação vigente, "
     "não substituindo uma assessoria ou parecer jurídico formal específico para o seu negócio.*"
 )
@@ -63,10 +64,13 @@ class RAGPipeline:
             self.cache_collection = self.chroma.create_collection(
                 name="cache_semantico")
 
-        # Configura a API do Gemini
-        api_key = os.environ.get("GEMINI_API_KEY")
+        # Inicializa o cliente do Groq buscando dos Secrets do Streamlit ou do ambiente local
+        api_key = os.environ.get(
+            "GROQ_API_KEY") or st.secrets.get("GROQ_API_KEY")
         if api_key:
-            genai.configure(api_key=api_key)
+            self.client = Groq(api_key=api_key)
+        else:
+            self.client = None
 
     def ingest_directory(self, target_dir: str) -> None:
         """Carrega PDFs, quebra em pedaços (chunks) e indexa no ChromaDB."""
@@ -165,6 +169,9 @@ class RAGPipeline:
 
     def answer(self, question: str, k: int = 5) -> dict[str, Any]:
         """Orquestra a busca, gerencia o cache semântico, executa o roteamento e gera a resposta."""
+        if not self.client:
+            raise ValueError(
+                "Groq Client não inicializado. Verifique a configuração da sua GROQ_API_KEY.")
 
         # 1. VALIDAÇÃO DE REDUÇÃO DE CUSTO: Consulta ao Cache Semântico
         cached_response = self._check_cache(question)
@@ -175,18 +182,24 @@ class RAGPipeline:
         perguntas_curtas = ["olá", "oi", "bom dia",
                             "boa tarde", "quem é você", "ajuda"]
         if question.lower().strip() in perguntas_curtas or len(question.strip()) < 12:
-            modelo_flash = "models/gemini-1.5-flash"
-            model = genai.GenerativeModel(
-                model_name=modelo_flash, system_instruction=PROMPT_SISTEMA_LGPD)
-            response = model.generate_content(question)
+            modelo_flash = "llama3-8b-8192"
+
+            response = self.client.chat.completions.create(
+                model=modelo_flash,
+                messages=[
+                    {"role": "system", "content": PROMPT_SISTEMA_LGPD},
+                    {"role": "user", "content": question}
+                ]
+            )
+            resposta_texto = response.choices[0].message.content
 
             payload = {
-                "answer": response.text if response else "Não foi possível gerar uma resposta rápida.",
+                "answer": resposta_texto if resposta_texto else "Não foi possível gerar uma resposta rápida.",
                 "sources": [],
                 "routing": {
                     "model": modelo_flash,
                     "complexity": "simple",
-                    "reason": "Interação inicial simplificada ou saudação tratada pelo modelo Flash."
+                    "reason": "Interação inicial simplificada ou saudação tratada pelo modelo Llama 8B."
                 }
             }
             self._save_cache(question, payload)
@@ -198,34 +211,32 @@ class RAGPipeline:
             [f"--- Trecho [{h['source']}, Pág. {h['page']}]: ---\n{h['text']}" for h in hits]
         )
 
-        # 4. MODEL ROUTING COM TRATAMENTO DE ERRO (BLINDAGEM DO PROMPT)
-        modelo_escolhido = "models/gemini-1.5-pro"  # Fallback padrão robusto
+        # 4. MODEL ROUTING COM TRATAMENTO DE ERRO (Mapeado de Gemini para Groq)
+        # Fallback padrão robusto do Groq para tarefas complexas
+        modelo_escolhido = "llama3-70b-8192"
         complexidade = "complex"
         motivo = "Análise detalhada de conformidade regulatória."
 
         try:
             decisao_rota = classify_complexity(question)
             if decisao_rota:
-                # Verifica se o retorno é um objeto com atributo ou um dicionário
-                if hasattr(decisao_rota, "model"):
-                    modelo_escolhido = decisao_rota.model
-                    complexidade = getattr(
-                        decisao_rota, "complexity", "complex")
-                    motivo = getattr(decisao_rota, "reason", motivo)
-                elif isinstance(decisao_rota, dict):
-                    modelo_escolhido = decisao_rota.get(
-                        "model", modelo_escolhido)
-                    complexidade = decisao_rota.get("complexity", complexidade)
-                    motivo = decisao_rota.get("reason", motivo)
+                # Se o classificador externo retornar algum modelo antigo do gemini, forçamos a conversão para Groq
+                if hasattr(decisao_rota, "model") or isinstance(decisao_rota, dict):
+                    nome_modelo = getattr(
+                        decisao_rota, "model", "") or decisao_rota.get("model", "")
+                    if "flash" in nome_modelo.lower():
+                        modelo_escolhido = "llama3-8b-8192"
+                        complexidade = "simple"
+                    else:
+                        modelo_escolhido = "llama3-70b-8192"
+                        complexidade = "complex"
+
+                    motivo = getattr(decisao_rota, "reason", motivo) if hasattr(
+                        decisao_rota, "reason") else decisao_rota.get("reason", motivo)
         except Exception:
-            pass  # Se o arquivo externo falhar, usa o modelo pro para garantir a execução
+            pass  # Se o arquivo externo de roteamento falhar, usa o modelo robusto 70B para garantir
 
         # 5. MONTAGEM COMPLETA DO PROMPT COM PERSONA, DIRETRIZES E CONTEXTO
-        model = genai.GenerativeModel(
-            model_name=modelo_escolhido,
-            system_instruction=PROMPT_SISTEMA_LGPD
-        )
-
         prompt_usuario = (
             f"Por favor, analise a demanda abaixo considerando estritamente as regras de conformidade "
             f"fornecidas no contexto.\n\n"
@@ -233,26 +244,31 @@ class RAGPipeline:
             f"PERGUNTA DO USUÁRIO: {question}"
         )
 
-        # 6. GERAÇÃO DA RESPOSTA (Generation)
-        response = model.generate_content(prompt_usuario)
+        # 6. GERAÇÃO DA RESPOSTA VIA GROQ (Generation)
+        response = self.client.chat.completions.create(
+            model=modelo_escolhido,
+            messages=[
+                {"role": "system", "content": PROMPT_SISTEMA_LGPD},
+                {"role": "user", "content": prompt_usuario}
+            ]
+        )
+        resposta_final_texto = response.choices[0].message.content
 
         # 7. FILTRAGEM E MAPEAMENTO DE FONTES UTILIZADAS (BLINDADO)
         msg_guardrail = "Como seu Assistente de Compliance LGPD, meu escopo de atuação é restrito"
-        resposta_final_texto = response.text if response else "Não foi possível gerar uma resposta."
+        resposta_final_texto = resposta_final_texto if resposta_final_texto else "Não foi possível gerar uma resposta."
 
-        # Garante que hits é tratado como lista mesmo se for None
         lista_hits = hits if hits is not None else []
 
         if msg_guardrail in resposta_final_texto:
             fontes_unicas = []
         else:
-            # Cria o conjunto de fontes apenas se houver hits
             fontes_unicas = list(
                 {f"{h['source']} (pág. {h['page']})" for h in lista_hits})
 
             if fontes_unicas:
                 texto_fontes = "\n\n**Fontes consultadas nos guias oficiais:**\n" + \
-                    "\n".join([f"- {f}" for f in fontes_unicas])
+                               "\n".join([f"- {f}" for f in fontes_unicas])
                 resposta_final_texto += texto_fontes
 
         # 8. CONSTRUÇÃO DO PAYLOAD FINAL E ATUALIZAÇÃO DO CACHE
