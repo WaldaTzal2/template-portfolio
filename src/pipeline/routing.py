@@ -14,9 +14,10 @@ class RouteDecision:
 
 
 def classify_complexity(query: str) -> RouteDecision:
-    """Classifica complexidade da query para escolher modelo (cheap vs premium)."""
-    cheap_model = os.environ.get("CHEAP_MODEL", "gemini-2.5-flash-lite")
-    premium_model = os.environ.get("PREMIUM_MODEL", "gemini-2.5-pro")
+    """Classifica complexidade da query para escolher modelo (cheap vs premium) do Groq."""
+    # Configura os modelos oficiais e equivalentes do Groq
+    cheap_model = os.environ.get("CHEAP_MODEL", "llama3-8b-8192")
+    premium_model = os.environ.get("PREMIUM_MODEL", "llama3-70b-8192")
 
     query_lower = query.lower()
     gatilhos_complexos = ["explique", "compare",
@@ -26,6 +27,7 @@ def classify_complexity(query: str) -> RouteDecision:
     if len(query) < 60 and query.strip().endswith("?"):
         return RouteDecision(
             model=cheap_model,
+            version_type="groq",  # Garante marcação interna se necessário
             complexity="simple",
             reason="Query curta finalizada com ponto de interrogação."
         )
@@ -42,5 +44,5 @@ def classify_complexity(query: str) -> RouteDecision:
     return RouteDecision(
         model=cheap_model,
         complexity="simple",
-        reason="Heurística padrão: direcionado ao modelo econômico."
+        reason="Heurística padrão: direcionado ao modelo econômico do Groq."
     )
