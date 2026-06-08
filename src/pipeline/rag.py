@@ -17,8 +17,11 @@ PROMPT_SISTEMA_LGPD = (
 
 
 class RAGPipeline:
-    def __init__(self):
-        """Inicializa o cliente do Groq utilizando a chave secreta dos Secrets."""
+    def __init__(self, *args, **kwargs):
+        """Inicializa o cliente do Groq aceitando argumentos extras flexíveis do app.py."""
+        # Captura o chroma_client se enviado, evitando quebra de assinatura
+        self.chroma_client = kwargs.get("chroma_client", None)
+
         # Busca a chave diretamente do ambiente (injetada pelo Streamlit Cloud)
         api_key = os.environ.get("GROQ_API_KEY")
 
@@ -27,7 +30,7 @@ class RAGPipeline:
         else:
             self.client = None
 
-        # Simulação de cache interno e banco vetorial simples para a demonstração
+        # Simulação de cache interno
         self.cache = {}
 
     def _check_cache(self, question: str) -> dict[str, Any] | None:
@@ -38,7 +41,6 @@ class RAGPipeline:
 
     def retrieve(self, question: str, k: int = 5) -> list[dict[str, Any]]:
         """Simula a busca de trechos relevantes dos guias oficiais da ANPD."""
-        # Retorna um trecho genérico simulado baseado no escopo para evitar falhas de contexto
         return [
             {
                 "source": "Guia Orientativo de Microempresas - ANPD",
@@ -80,10 +82,9 @@ class RAGPipeline:
 
         # 3. Recuperação de Contexto (RAG)
         hits = self.retrieve(question, k=k)
-        contexto_formatado = f"--- Trecho [{hits[0]['source']}, Pág. {hits[0]['page']}]: ---\n{hits[0]['text']}"
+        contexto_formatated = f"--- Trecho [{hits[0]['source']}, Pág. {hits[0]['page']}]: ---\n{hits[0]['text']}"
 
         # 4. Roteamento de Modelos Direto e Seguro
-        # Executa a função do routing.py que devolve a dataclass RouteDecision
         decisao = classify_complexity(question)
         modelo_escolhido = decisao.model
         complexidade = decisao.complexity
@@ -92,7 +93,7 @@ class RAGPipeline:
         # 5. Montagem do prompt final
         prompt_usuario = (
             f"Analise a demanda considerando o contexto fornecido.\n\n"
-            f"CONTEXTO:\n{contexto_formatado}\n\n"
+            f"CONTEXTO:\n{contexto_formatated}\n\n"
             f"PERGUNTA: {question}"
         )
 
