@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
 
 
@@ -15,9 +14,9 @@ class RouteDecision:
 
 def classify_complexity(query: str) -> RouteDecision:
     """Classifica complexidade da query para escolher modelo (cheap vs premium) do Groq."""
-    # Configura os modelos oficiais e equivalentes do Groq
-    cheap_model = os.environ.get("CHEAP_MODEL", "llama3-8b-8192")
-    premium_model = os.environ.get("PREMIUM_MODEL", "llama3-70b-8192")
+    # Força os modelos diretamente como strings para ignorar lixo de variáveis antigas
+    cheap_model = "llama3-8b-8192"
+    premium_model = "llama3-70b-8192"
 
     query_lower = query.lower()
     gatilhos_complexos = ["explique", "compare",
@@ -27,7 +26,6 @@ def classify_complexity(query: str) -> RouteDecision:
     if len(query) < 60 and query.strip().endswith("?"):
         return RouteDecision(
             model=cheap_model,
-            version_type="groq",  # Garante marcação interna se necessário
             complexity="simple",
             reason="Query curta finalizada com ponto de interrogação."
         )
